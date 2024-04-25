@@ -3,7 +3,7 @@ import logging
 import random
 
 from telegram.ext import Application, MessageHandler, filters, CommandHandler
-BOT_TOKEN = '7160012435:AAFKsj_6NZ_wBwSAA-3Wiv_jNtX_7w6Kbns'
+BOT_TOKEN = '6537556714:AAGIdslrTde82frSh8TtbIWG3SyuACW0anY'
 import time
 from telegram import ReplyKeyboardMarkup
 
@@ -26,7 +26,7 @@ async def hotels_in_city(update, context):
 
     search_params = {
         "apikey": api_key,
-        "text": "отель+в+Москве",
+        "text": "отель+в+" + city,
         "lang": "ru_RU",
         "type": "biz"
     }
