@@ -3,7 +3,7 @@ import logging
 import random
 
 from telegram.ext import Application, MessageHandler, filters, CommandHandler
-from config import BOT_TOKEN
+BOT_TOKEN = '7160012435:AAFKsj_6NZ_wBwSAA-3Wiv_jNtX_7w6Kbns'
 import time
 from telegram import ReplyKeyboardMarkup
 
@@ -19,10 +19,20 @@ async def start(update, context):
 
 
 async def hotels_in_city(update, context):
-    city = update.message.text
+    city = context.args[0]
+    print(city)
+    search_api_server = "https://search-maps.yandex.ru/v1/"
     api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
-    url = f'https://search-maps.yandex.ru/v1/?api_key={api_key}&text=гостиницы+в+{city}&type=biz&lang=ru_RU'
-    response = requests.get(url)
+
+    search_params = {
+        "apikey": api_key,
+        "text": "отель+в+Москве",
+        "lang": "ru_RU",
+        "type": "biz"
+    }
+
+    response = requests.get(search_api_server, params=search_params)
+
     if response.status_code == 200:
         data = response.json()
         hotels = [item['properties']['CompanyMetaData']['name'] for item in data['features']]
@@ -43,12 +53,13 @@ def main():
     # После регистрации обработчика в приложении
     # эта асинхронная функция будет вызываться при получении сообщения
     # с типом "текст", т. е. текстовых сообщений.
-    text_handler = MessageHandler(filters.TEXT, start)
+    # text_handler = MessageHandler(filters.TEXT, start)
 
     # Регистрируем обработчик в приложении.
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(text_handler)
+    application.add_handler(CommandHandler("hotels", hotels_in_city))
+    # application.add_handler(text_handler)
 
     # Запускаем приложение.
     application.run_polling()
