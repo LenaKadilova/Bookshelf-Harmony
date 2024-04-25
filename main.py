@@ -17,8 +17,8 @@ async def start(update, context):
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
     # выводим приветственное сообщение
     await update.message.reply_text(
-        f'''Привет! Это бот, который сделает твои путешествия приятнее) \nПеред началом работы укажите 
-        свое местоположение''', reply_markup=markup)
+        f'''Привет! Это бот, который сделает твои путешествия приятнее) 
+Перед началом работы укажите свое местоположение''', reply_markup=markup)
     current_pos = (update.message.location.latitude, update.message.location.longitude)
     print(current_pos)
 
@@ -27,7 +27,8 @@ async def weather_response(update, context):
     # await update.message.reply_text("Тут могла бы быть погода")
     try:
         # получаем город из сообщения пользователя
-        city = update.message.text
+        city = context.args[0]
+        print(city)
         # формируем запрос и отправляем его на сервер
         url = 'https://api.openweathermap.org/data/2.5/weather?q=' + city + '&units=metric&lang=ru&appid=79d1ca96933b0328e1c7e3e7a26cb347'
         weather_data = requests.get(url).json()
@@ -44,10 +45,11 @@ async def weather_response(update, context):
 
 
 async def bot_help(update, context):
-    update.message.reply_text(
+    await update.message.reply_text(
         "Команда /weather <название_города> позволяет узнать погоду в указанном городе.")
-    update.message.reply_text(
+    await update.message.reply_text(
         "Команда /cafe <название_города> позволяет узнать погоду в указанном городе.")
+
 
 async def stop(update, context):
     await update.message.reply_text("Всего доброго!")
@@ -77,6 +79,7 @@ def main():
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler("weather", weather_response))
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", bot_help))
     '''application.add_handler(conv_handler)'''
     application.run_polling()
 
