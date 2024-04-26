@@ -2,7 +2,6 @@ import requests
 import logging
 import random
 import time
-import json
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, Updater
 from config import BOT_TOKEN
@@ -22,7 +21,7 @@ async def start(update, context):
         "Доброго времени суток тебе, человек)) Я бот-путешественник, и я помогу сделать твою поездку незабываемой!")
     time.sleep(1)
     await update.message.reply_text(
-        "Что я умею?\nКоманда /weather <название_города> позволяет узнать погоду в указанном городе.\nКоманда /cafes <название_города> дает рекомендации ресторанов в указанном городе.\nКоманда /hotels <название_города> выдает информацию об отелях в указанном городе.\nКоманда /sights <название_города> узнать больше о достопримечательностях в указанном городе и об их расположении на карте.")
+        "Что я умею?\nКоманда /weather <название_города> позволяет узнать погоду в указанном городе.\nКоманда /cafes <название_города> дает рекомендации ресторанов в указанном городе.\nКоманда /hotels <название_города> выдает информацию об отелях в указанном городе.\nКоманда /sights <название_города> позволяет узнать больше о достопримечательностях в указанном городе и об их расположении на карте.")
 
 
 async def hotels_in_city(update, context):
