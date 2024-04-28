@@ -208,7 +208,7 @@ def main():
     # После регистрации обработчика в приложении
     # эта асинхронная функция будет вызываться при получении сообщения
     # с типом "текст", т. е. текстовых сообщений.
-    text_handler = MessageHandler(filters.TEXT, sights_in_city)
+    # text_handler = MessageHandler(filters.TEXT, sights_in_city)
 
     # Регистрируем обработчик в приложении.
 
@@ -216,7 +216,7 @@ def main():
     application.add_handler(CommandHandler("hotels", hotels_in_city))
     application.add_handler(CommandHandler("cafes", restaurants))
     application.add_handler(CommandHandler("weather", weather_response))
-    application.add_handler(text_handler)
+    # application.add_handler(text_handler)
 
     conv_handler = ConversationHandler(
         # Точка входа в диалог.
@@ -228,6 +228,7 @@ def main():
         states={
             # Функция читает ответ на первый вопрос и задаёт второй.
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, sights_numbers)]
+            # 1: [MessageHandler(None, sights_numbers)]
         },
 
         # Точка прерывания диалога. В данном случае — команда /stop.
