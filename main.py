@@ -56,7 +56,8 @@ async def hotels_in_city(update, context):
                 hotels += '\n'
         await update.message.reply_text(hotels)
     except Exception:
-        await update.message.reply_text('Не удалось получить информацию о гостиницах. Проверь название города. Он точно находится в России?')
+        await update.message.reply_text(
+            'Не удалось получить информацию о гостиницах. Проверь название города. Он точно находится в России?')
 
 
 async def restaurants(update, context):
@@ -92,7 +93,8 @@ async def restaurants(update, context):
                 cafes += '\n'
         await update.message.reply_text(cafes)
     except Exception:
-        await update.message.reply_text('Не удалось получить информацию о ресторанах. Проверь название города. Он точно находится в России?')
+        await update.message.reply_text(
+            'Не удалось получить информацию о ресторанах. Проверь название города. Он точно находится в России?')
 
 
 async def sights_in_city(update, context):
@@ -102,9 +104,9 @@ async def sights_in_city(update, context):
     try:
         search_api_server = "https://search-maps.yandex.ru/v1/"
         api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
-        # print(context.args)
-        # city = context.args[0]
-        city = 'Чебоксары'
+        print(context.args)
+        city = context.args[0]
+        # city = 'Чебоксары'
         print(context)
 
         search_params = {
@@ -140,7 +142,10 @@ async def sights_in_city(update, context):
         # all_coords = ','.join(all_coords)
         print(all_coords)
         metks = ''
-        req = "http://static-maps.yandex.ru/1.x/?ll=" + str(round((min(coords_left) + max(coords_left)) / 2, 6)) + ',' + str(round((min(coords_right) + max(coords_right)) / 2, 6)) + '&spn=0.2,0.2&l=map&pt=' + str(all_coords[0][0]) + ',' + str(all_coords[0][1]) + ',' + 'pmorl1'
+        req = "http://static-maps.yandex.ru/1.x/?ll=" + str(
+            round((min(coords_left) + max(coords_left)) / 2, 6)) + ',' + str(
+            round((min(coords_right) + max(coords_right)) / 2, 6)) + '&spn=0.2,0.2&l=map&pt=' + str(
+            all_coords[0][0]) + ',' + str(all_coords[0][1]) + ',' + 'pmorl1'
         k = 0
         print(req)
         print(all_coords)
@@ -156,17 +161,32 @@ async def sights_in_city(update, context):
         print(len(sights))
         # await update.message.reply_photo(photo="im.jpg", caption=sights[:1025])
         await update.message.reply_text(sights)
-        await update.message.reply_photo(photo="im.jpg", caption='Введи номер/номера достопримечательностей, которые ты хотел бы посетить, через пробел.\nНапример, 1 3 10')
+        await update.message.reply_photo(photo="im.jpg",
+                                         caption='Введи номер/номера достопримечательностей, которые ты хотел бы посетить, через пробел.\nНапример, 1 3 10')
+
         return 1
 
     except Exception as ex:
         print(ex)
-        await update.message.reply_text('Не удалось получить информацию о достопримечательностях. Проверь название города. Он точно находится в России?')
+        await update.message.reply_text(
+            'Не удалось получить информацию о достопримечательностях. Проверь название города. Он точно находится в России?')
 
 
 async def sights_numbers(update, context):
     print(11111)
-    await update.message.reply_text(update.message.text)
+    numbers = update.message.text.split()
+    global all_coords
+
+    for number in numbers:
+        req = "http://static-maps.yandex.ru/1.x/?ll=" + str(all_coords[int(number) - 1][0]) + ',' + str(
+            all_coords[int(number) - 1][1]) + '&spn=0.02,0.02&l=map&pt=' + str(
+            all_coords[int(number) - 1][0]) + ',' + str(all_coords[int(number) - 1][1]) + ',' + 'pmorl' + number
+
+        with open('im.jpg', 'wb') as f:
+            f.write(requests.get(req).content)
+        await update.message.reply_photo(photo="im.jpg",
+                                         caption='тут могло бы быть название достопримечательности, но я хочу спать')
+
     return ConversationHandler.END  # Константа, означающая конец диалога.
     # Все обработчики из states и fallbacks становятся неактивными.
 
@@ -228,7 +248,6 @@ def main():
         states={
             # Функция читает ответ на первый вопрос и задаёт второй.
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, sights_numbers)]
-            # 1: [MessageHandler(None, sights_numbers)]
         },
 
         # Точка прерывания диалога. В данном случае — команда /stop.
@@ -244,3 +263,5 @@ def main():
 # Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
     main()
+
+
