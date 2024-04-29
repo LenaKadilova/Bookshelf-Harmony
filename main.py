@@ -177,16 +177,24 @@ async def sights_numbers(update, context):
     numbers = update.message.text.split()
     global all_coords
 
+    with open('jsons.json', 'r') as f:  # Открываем файл с данными о достопримечательностях
+        response = json.load(f)
+
+    sights_data = response['features']
+
     for number in numbers:
+        sight = sights_data[int(number) - 1]  # Получаем данные о выбранной достопримечательности
+        sight_name = sight['properties']['CompanyMetaData'].get('name', '')
+
         req = "http://static-maps.yandex.ru/1.x/?ll=" + str(all_coords[int(number) - 1][0]) + ',' + str(
             all_coords[int(number) - 1][1]) + '&spn=0.02,0.02&l=map&pt=' + str(
             all_coords[int(number) - 1][0]) + ',' + str(all_coords[int(number) - 1][1]) + ',' + 'pmorl' + number
 
         with open('im.jpg', 'wb') as f:
             f.write(requests.get(req).content)
-        await update.message.reply_photo(photo="im.jpg",
-                                         caption='тут могло бы быть название достопримечательности, но я хочу спать')
 
+        await update.message.reply_photo(photo="im.jpg",
+                                         caption=sight_name)
     return ConversationHandler.END  # Константа, означающая конец диалога.
     # Все обработчики из states и fallbacks становятся неактивными.
 
@@ -263,5 +271,4 @@ def main():
 # Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
     main()
-
 
