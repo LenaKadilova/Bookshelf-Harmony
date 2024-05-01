@@ -1,5 +1,5 @@
 import logging
-import random
+import sqlite3
 import time
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, Updater, ConversationHandler
@@ -13,6 +13,85 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 all_coords = []
+
+
+def create_database():
+    print(111111111111111)
+    conn = sqlite3.connect('cities.db')
+    cursor = conn.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users_cities (
+                        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_name TEXT,
+                        city_id INTEGER,
+                        FOREIGN KEY(city_id) REFERENCES cities(city_id)
+                    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS cities (
+                        city_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        city_name TEXT,
+                        UNIQUE(city_id)
+                    )""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS sights (
+                            sight_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            sight_name TEXT, 
+                            city_id INTEGER,
+                            coords1 DOUBLE,
+                            coords2 DOUBLE
+                        )""")
+    conn.commit()
+    conn.close()
+
+
+def add_sights_to_db(name, city, sights_names, sights_coords):
+    try:
+        print(1111)
+        conn = sqlite3.connect('cities.db')
+        cursor = conn.cursor()
+        print(1112)
+        cursor.execute("SELECT city_id FROM cities WHERE city_name=?",
+                       (city,))
+        city_id = cursor.fetchone()
+        if not city_id:
+            cursor.execute("INSERT INTO cities (city_name) VALUES (?)",
+                           (city.lower().capitalize(), ))
+            conn.commit()
+
+            cursor.execute("SELECT city_id FROM cities WHERE city_name=?",
+                           (city,))
+            city_id = cursor.fetchone()
+
+        print(555)
+
+        cursor.execute("SELECT user_name FROM users_cities WHERE user_name=?", (name, ))
+        all_names = cursor.fetchall()
+
+        print(22)
+        print(all_names)
+        if not all_names:
+            cursor.execute("INSERT INTO users_cities (user_name, city_id) VALUES (?, ?)",
+                           (name, city_id[0]))
+            conn.commit()
+        else:
+            print(city_id[0], name)
+            cursor.execute("UPDATE users_cities SET city_id=? WHERE user_name=?",
+                           (city_id[0], name))
+            conn.commit()
+
+        print(78)
+
+        for numb in range(len(sights_names)):
+            print(sights_names[numb], city_id[0], sights_coords[numb][0], sights_coords[numb][1])
+            cursor.execute("SELECT sight_id FROM sights WHERE sight_name=? AND city_id=? AND coords1=? AND coords2=?",
+                           (sights_names[numb], city_id[0], sights_coords[numb][0], sights_coords[numb][1]))
+            same_sights = cursor.fetchall()
+            if not same_sights:
+                cursor.execute("INSERT INTO sights (sight_name, city_id, coords1, coords2) VALUES (?, ?, ?, ?)",
+                               (sights_names[numb], city_id[0], sights_coords[numb][0], sights_coords[numb][1]))
+                conn.commit()
+
+        print(68)
+
+    except Exception as ex:
+        print(ex)
 
 
 async def start(update, context):
@@ -106,9 +185,8 @@ async def sights_in_city(update, context):
         api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
         print(context.args)
         city = context.args[0]
-        # city = 'Чебоксары'
+        name = update.message.from_user.username
         print(context)
-
         search_params = {
             "apikey": api_key,
             "text": "достопримечательности+в+" + city,
@@ -119,9 +197,11 @@ async def sights_in_city(update, context):
         response = requests.get(search_api_server, params=search_params).json()
         with open('jsons.json', 'w') as f:
             json.dump(response, f, indent=4)
+
         print(response)
         cnt = 0
         all_coords = []
+        sights_names = []
         sights = 'Достопримечательности в городе ' + city + '\n'
         coords_left = []
         coords_right = []
@@ -136,6 +216,7 @@ async def sights_in_city(update, context):
             coords_right.append(sight_coords[1])
             if sight_name:
                 sights += (str(cnt) + ') ' + 'Название: ' + sight_name + '\n')
+                sights_names.append(sight_name)
                 if sight_address:
                     sights += ('Адрес: ' + sight_address + '\n')
                 sights += '\n'
@@ -157,12 +238,16 @@ async def sights_in_city(update, context):
         with open('im.jpg', 'wb') as f:
             f.write(requests.get(req).content)
         print(7)
+
+
         # await update.message.reply_text(sights)
         print(len(sights))
         # await update.message.reply_photo(photo="im.jpg", caption=sights[:1025])
         await update.message.reply_text(sights)
         await update.message.reply_photo(photo="im.jpg",
                                          caption='Введи номер/номера достопримечательностей, которые ты хотел бы посетить, через пробел.\nНапример, 1 3 10')
+
+        add_sights_to_db(name, city, sights_names, all_coords)
 
         return 1
 
@@ -175,26 +260,29 @@ async def sights_in_city(update, context):
 async def sights_numbers(update, context):
     print(11111)
     numbers = update.message.text.split()
-    global all_coords
+    name = update.message.from_user.username
+    conn = sqlite3.connect('cities.db')
+    cursor = conn.cursor()
 
-    with open('jsons.json', 'r') as f:  # Открываем файл с данными о достопримечательностях
-        response = json.load(f)
+    cursor.execute("SELECT city_id FROM users_cities WHERE user_name=?", (name,))
+    city_id = cursor.fetchone()[0]
 
-    sights_data = response['features']
+    cursor.execute("SELECT * FROM sights WHERE city_id=?",
+                   (city_id,))
+    city_info = cursor.fetchall()
+    print('info')
+    print(city_info)
 
     for number in numbers:
-        sight = sights_data[int(number) - 1]  # Получаем данные о выбранной достопримечательности
-        sight_name = sight['properties']['CompanyMetaData'].get('name', '')
-
-        req = "http://static-maps.yandex.ru/1.x/?ll=" + str(all_coords[int(number) - 1][0]) + ',' + str(
-            all_coords[int(number) - 1][1]) + '&spn=0.02,0.02&l=map&pt=' + str(
-            all_coords[int(number) - 1][0]) + ',' + str(all_coords[int(number) - 1][1]) + ',' + 'pmorl' + number
-
+        sight = city_info[int(number) - 1][1]
+        req = "http://static-maps.yandex.ru/1.x/?ll=" + str(city_info[int(number) - 1][3]) + ',' + str(
+            city_info[int(number) - 1][4]) + '&spn=0.02,0.02&l=map&pt=' + str(
+            city_info[int(number) - 1][3]) + ',' + str(city_info[int(number) - 1][4]) + ',' + 'pmorl' + number
         with open('im.jpg', 'wb') as f:
             f.write(requests.get(req).content)
-
         await update.message.reply_photo(photo="im.jpg",
-                                         caption=sight_name)
+                                         caption=sight)
+
     return ConversationHandler.END  # Константа, означающая конец диалога.
     # Все обработчики из states и fallbacks становятся неактивными.
 
@@ -270,5 +358,5 @@ def main():
 
 # Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
+    create_database()
     main()
-
