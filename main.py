@@ -143,37 +143,90 @@ async def restaurants(update, context):
     try:
         search_api_server = "https://search-maps.yandex.ru/v1/"
         api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
-        city = context.args[0]
+        print(4440)
+        if context.args:
+            print(777)
+            city = context.args[0]
+            search_params = {
+                "apikey": api_key,
+                "text": "кафе+в+" + city,
+                "lang": "ru_RU",
+                "type": "biz"
+            }
 
-        search_params = {
-            "apikey": api_key,
-            "text": "кафе+в+" + city,
-            "lang": "ru_RU",
-            "type": "biz"
-        }
+            response = requests.get(search_api_server, params=search_params).json()
+            cnt = 0
+            cafes = 'Рестораны недалеко от Вас:\n'
+            for cafe in response['features']:
+                cnt += 1
+                cafe_name = cafe['properties']['CompanyMetaData'].get('name', '')
+                cafe_address = cafe['properties']['CompanyMetaData'].get('address', '')
+                cafe_url = cafe['properties']['CompanyMetaData'].get('url', '')
+                cafe_hours = cafe['properties']['CompanyMetaData'].get('Hours', '').get('text', '')
+                if cafe_name:
+                    cafes += (str(cnt) + ') ' + 'Название: ' + cafe_name + '\n')
+                    if cafe_address:
+                        cafes += ('Адрес: ' + cafe_address + '\n')
+                    if cafe_url:
+                        cafes += ('Сайт: ' + cafe_url + '\n')
+                    if cafe_hours:
+                        cafes += ('График работы: ' + cafe_hours + '\n')
+                    cafes += '\n'
+            await update.message.reply_text(cafes)
+        else:
+            print(666)
+            reply_keyboard = [[{"request_location": True, "text": "Где я нахожусь"}]]
+            markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+            # выводим приветственное сообщение
+            await update.message.reply_text(
+                f'''geopos''', reply_markup=markup)
+            # time.sleep(3)
 
-        response = requests.get(search_api_server, params=search_params).json()
-        cnt = 0
-        cafes = 'Рестораны недалеко от Вас:\n'
-        for cafe in response['features']:
-            cnt += 1
-            cafe_name = cafe['properties']['CompanyMetaData'].get('name', '')
-            cafe_address = cafe['properties']['CompanyMetaData'].get('address', '')
-            cafe_url = cafe['properties']['CompanyMetaData'].get('url', '')
-            cafe_hours = cafe['properties']['CompanyMetaData'].get('Hours', '').get('text', '')
-            if cafe_name:
-                cafes += (str(cnt) + ') ' + 'Название: ' + cafe_name + '\n')
-                if cafe_address:
-                    cafes += ('Адрес: ' + cafe_address + '\n')
-                if cafe_url:
-                    cafes += ('Сайт: ' + cafe_url + '\n')
-                if cafe_hours:
-                    cafes += ('График работы: ' + cafe_hours + '\n')
-                cafes += '\n'
-        await update.message.reply_text(cafes)
-    except Exception:
+    except Exception as ex:
+        print(ex)
         await update.message.reply_text(
             'Не удалось получить информацию о ресторанах. Проверь название города. Он точно находится в России?')
+
+
+async def get_location(update, context):
+    print(232323)
+    search_api_server = "https://search-maps.yandex.ru/v1/"
+    api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
+    current_pos = (update.message.location.latitude, update.message.location.longitude)
+    search_params = {
+        "apikey": api_key,
+        "text": "кафе",
+        "ll": str(current_pos[1]) + ',' + str(current_pos[0]),
+        "lang": "ru_RU",
+        "type": "biz"
+    }
+
+    # text = 'https://search-maps.yandex.ru/v1/?text=кафе&results=10&lang=ru_RU&ll=' + str(current_pos[1]) + ',' + str(current_pos[0]) + '&apikey=dda3ddba-c9ea-4ead-9010-f43fbc15c6e3'
+    # resp = requests.get(text).json()
+    # print(resp)
+    response = requests.get(search_api_server, params=search_params).json()
+    cnt = 0
+    with open('cafe.json', 'w') as f:
+        json.dump(response, f, indent=4)
+    cafes = 'Рестораны недалеко от Вас:\n'
+    for cafe in response['features']:
+        cnt += 1
+        cafe_name = cafe['properties']['CompanyMetaData'].get('name', '')
+        cafe_address = cafe['properties']['CompanyMetaData'].get('address', '')
+        cafe_url = cafe['properties']['CompanyMetaData'].get('url', '')
+        cafe_hours = cafe['properties']['CompanyMetaData'].get('Hours', '').get('text', '')
+        if cafe_name:
+            cafes += (str(cnt) + ') ' + 'Название: ' + cafe_name + '\n')
+            if cafe_address:
+                cafes += ('Адрес: ' + cafe_address + '\n')
+            if cafe_url:
+                cafes += ('Сайт: ' + cafe_url + '\n')
+            if cafe_hours:
+                cafes += ('График работы: ' + cafe_hours + '\n')
+            cafes += '\n'
+    await update.message.reply_text(cafes)
+
+    print(current_pos)
 
 
 async def sights_in_city(update, context):
@@ -328,13 +381,17 @@ def main():
 
     # Регистрируем обработчик в приложении.
 
+
+    location_handler = MessageHandler(filters._Location(), get_location)
+    application.add_handler(location_handler)
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("hotels", hotels_in_city))
-    application.add_handler(CommandHandler("cafes", restaurants))
+    # application.add_handler(CommandHandler("cafes", restaurants))
     application.add_handler(CommandHandler("weather", weather_response))
     # application.add_handler(text_handler)
 
-    conv_handler = ConversationHandler(
+    conv_handler1 = ConversationHandler(
         # Точка входа в диалог.
         # В данном случае — команда /start. Она задаёт первый вопрос.
         entry_points=[CommandHandler('sights', sights_in_city)],
@@ -350,7 +407,25 @@ def main():
         fallbacks=[CommandHandler('stop', stop)]
     )
 
-    application.add_handler(conv_handler)
+    application.add_handler(conv_handler1)
+
+    conv_handler2 = ConversationHandler(
+        # Точка входа в диалог.
+        # В данном случае — команда /start. Она задаёт первый вопрос.
+        entry_points=[CommandHandler('cafes', restaurants)],
+
+        # Состояние внутри диалога.
+        # Вариант с двумя обработчиками, фильтрующими текстовые сообщения.
+        states={
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            1: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_location)]
+        },
+
+        # Точка прерывания диалога. В данном случае — команда /stop.
+        fallbacks=[CommandHandler('stop', stop)]
+    )
+
+    application.add_handler(conv_handler2)
 
     # Запускаем приложение.
     application.run_polling()
